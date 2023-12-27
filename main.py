@@ -3,11 +3,15 @@ from fastapi.responses import JSONResponse, FileResponse
 
 from spotify_dl.spotify_dl import spotify_dl
 
-import os, sys
+import os, sys, shutil
 from uuid import uuid1 as uuid
 
 
 app = FastAPI()
+
+@app.get("/favicon.ico")
+async def favicon():
+    return FileResponse("favicon.ico")
 
 @app.get("/d")
 async def download(link: str):
@@ -45,6 +49,12 @@ async def stream(unique_code: str, background_tasks: BackgroundTasks):
 
     file_response = FileResponse(f_song_path)
     
-    background_tasks.add_task(lambda: os.remove(f_song_path))
+    background_tasks.add_task(pop_unique_cache, f_song_path, folder_name, unique_folder_path)
 
     return file_response
+
+def pop_unique_cache(song_path: str, folder_name: str, unique_folder_path: str):
+    os.remove(song_path)
+
+    if len(os.listdir(f"{unique_folder_path}/{folder_name}")) == 0:
+        shutil.rmtree(unique_folder_path)
