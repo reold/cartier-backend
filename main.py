@@ -1,31 +1,23 @@
 from fastapi import FastAPI
-from fastapi.responses import HTMLResponse,FileResponse
+from fastapi.responses import FileResponse
 
-import os
-from dotenv import load_dotenv
-
-
-# load_dotenv(".env")
+import os, sys
+from spotify_dl.spotify_dl import spotify_dl
 
 app = FastAPI()
-# downloader = spotdownloader(os.environ.get("SPOTIPY_CLIENT_ID"), 
-#                             os.environ.get("SPOTIPY_CLIENT_SECRET"), 
-#                             os.environ.get("GENIUS_CLIENT_TOKEN"),
-#                             directory=OUTPUT_FOLDER)
 
 
 @app.get("/d")
 async def root(link: str):
-    # if not downloader.validate_playlist_url(link):
-    #     return HTMLResponse("invalid playlist url",status_code=404)
 
-    # downloader.start_downloader(link)
-    print("downloading link", link)
+    sys.argv = [sys.argv[0], "-l", link, "-o", "./downloads"]
+    
+    try:
+        spotify_dl()
+    except:
+        return "failed"
 
+    folder_name = os.listdir("./downloads")[0]
+    f_file_name = os.listdir(f"./downloads/{folder_name}")[0]
 
-    return "done"
-
-
-@app.get("/env/{name}")
-def getenv(name: str):
-    return os.getenv(name)
+    return FileResponse(f"./downloads/{folder_name}/{f_file_name}", filename=f_file_name)
