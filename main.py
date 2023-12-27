@@ -2,6 +2,7 @@ from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
 
 from spotify_dl.spotify_dl import spotify_dl
+import spotipy
 
 import os, sys, shutil
 from uuid import uuid1 as uuid
@@ -9,9 +10,34 @@ from uuid import uuid1 as uuid
 
 app = FastAPI()
 
+spotify_auth = spotipy.SpotifyClientCredentials()
+
+spotify = spotipy.Spotify(auth_manager=spotify_auth)
+
 @app.get("/favicon.ico")
 async def favicon():
     return FileResponse("favicon.ico")
+
+
+@app.get("/u")
+async def user(username: str):
+
+    try:
+        user_info = spotify.user(username)
+    except spotipy.exceptions.SpotifyException as e:
+        return JSONResponse({"success": False, "info": "spotify error", "msg": e.msg})
+
+    return user_info
+
+@app.get("/p")
+async def playlist(id: str):
+
+    try:
+        playlist_info = spotify.playlist(id)
+    except spotipy.exceptions.SpotifyException as e:
+        return JSONResponse({"success": False, "info": "spotify error", "msg": e.msg})
+
+    return playlist_info
 
 @app.get("/d")
 async def download(link: str):
