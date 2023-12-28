@@ -1,5 +1,6 @@
 from fastapi import FastAPI, BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 
 from spotify_dl.spotify_dl import spotify_dl
 import spotipy
@@ -9,6 +10,7 @@ from uuid import uuid1 as uuid
 
 
 app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 spotify_auth = spotipy.SpotifyClientCredentials()
 
@@ -19,15 +21,16 @@ async def favicon():
     return FileResponse("favicon.ico")
 
 
-@app.get("/u")
+@app.get("/user")
 async def user(username: str):
 
     try:
         user_info = spotify.user(username)
+        playlist_info = spotify.user_playlists(username)
     except spotipy.exceptions.SpotifyException as e:
-        return JSONResponse({"success": False, "info": "spotify error", "msg": e.msg})
+        return JSONResponse({"success": False, "info": "spotify error", "msg": e.msg}, status_code=404)
 
-    return user_info
+    return {"data": {"user": user_info, "playlists": playlist_info}, "success": True}
 
 @app.get("/p")
 async def playlist(id: str):
@@ -35,7 +38,7 @@ async def playlist(id: str):
     try:
         playlist_info = spotify.playlist(id)
     except spotipy.exceptions.SpotifyException as e:
-        return JSONResponse({"success": False, "info": "spotify error", "msg": e.msg})
+        return JSONResponse({"success": False, "info": "spotify error", "msg": e.msg}, status_code=404)
 
     return playlist_info
 
