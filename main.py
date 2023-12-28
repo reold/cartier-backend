@@ -32,7 +32,7 @@ async def user(username: str):
 
     return {"data": {"user": user_info, "playlists": playlist_info}, "success": True}
 
-@app.get("/p")
+@app.get("/playlist")
 async def playlist(id: str):
 
     try:
@@ -42,7 +42,7 @@ async def playlist(id: str):
 
     return playlist_info
 
-@app.get("/d")
+@app.get("/download")
 async def download(link: str):
 
     unique_code = uuid().hex
@@ -58,7 +58,7 @@ async def download(link: str):
 
     return JSONResponse({"success": True, "data": {"unique_code": unique_code, "count": len(songs)}})
 
-@app.get("/s")
+@app.get("/stream")
 async def stream(unique_code: str, background_tasks: BackgroundTasks):
 
     unique_folder_path = f"./downloads/{unique_code}"
