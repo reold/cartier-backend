@@ -20,6 +20,9 @@ spotify = spotipy.Spotify(auth_manager=spotify_auth)
 async def favicon():
     return FileResponse("favicon.ico")
 
+@app.get("/")
+async def root():
+    return "Hello, world!"
 
 @app.get("/user")
 async def user(username: str):
