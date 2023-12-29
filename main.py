@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from spotify_dl.spotify_dl import spotify_dl
 import spotipy
-
+import time
 import os, sys, shutil
 from uuid import uuid1 as uuid
 
@@ -22,7 +22,7 @@ async def favicon():
 
 @app.get("/")
 async def root():
-    return "Hello, world!"
+    return JSONResponse({"success": True})
 
 @app.get("/user")
 async def user(username: str):
@@ -64,7 +64,7 @@ async def download_track(link: str, unique_code: str = "", create: bool = False)
 
 
 @app.get("/stream")
-async def stream(unique_code: str, background_tasks: BackgroundTasks):
+def stream(unique_code: str, background_tasks: BackgroundTasks):
 
     unique_folder_path = f"./downloads/{unique_code}"
     
