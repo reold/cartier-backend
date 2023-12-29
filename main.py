@@ -4,10 +4,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from spotify_dl.spotify_dl import spotify_dl
 import spotipy
-import time
-import os, sys, shutil
-from uuid import uuid1 as uuid
 
+import os, sys, shutil
+from pysondb import PysonDB
+from pysondb import errors as PysonErrors
+
+db = PysonDB("db.json")
 
 app = FastAPI()
 app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
@@ -46,45 +48,91 @@ async def playlist(id: str):
     return playlist_info
 
 @app.get("/track")
-async def download_track(link: str, unique_code: str = "", create: bool = False):
+async def download_track(link: str, background_tasks: BackgroundTasks, key: str = "", create: bool = False):
 
     if create:
-        unique_code = uuid().hex
+        key = db.add({"songs": []})
 
-    sys.argv = [sys.argv[0], "-l", link, "-o", f"./downloads/{unique_code}"]
+    song_id = link.split("/")[-1].split("?")[0]
+
+    record = db.get_by_id(key)
     
+    db.update_by_id(key, {"songs": [*record["songs"], {"link": link, "id": song_id, "status": "downloading"}]})
+
     try:
-        spotify_dl()
+        background_tasks.add_task(task_spotify_dl, key, link, song_id)
     except:
         return JSONResponse({"success": False, "info": "track couldn't be downloaded"}, status_code=404)
 
-    songs = os.listdir(f"./downloads/{unique_code}/")
 
-    return JSONResponse({"success": True, "data": {"unique_code": unique_code, "count": len(songs)}})
+    return JSONResponse({"success": True, "data": {"key": key}})
 
+def task_spotify_dl(key: str, link: str, id: str):
+    id_path = f"./downloads/{key}/{id}"
+
+    sys.argv = [sys.argv[0], "-l", link, "-mc", "2", "-o", id_path]
+
+    spotify_dl()
+
+    song_folder_name = os.listdir(id_path)[0]
+    song_name = os.listdir(f"{id_path}/{song_folder_name}")[0]
+    song_path = f"{id_path}/{song_folder_name}/{song_name}"
+
+    print(f"{song_folder_name=} {song_name=} {song_path=}")
+
+    shutil.move(song_path, f"{id_path}")
+    shutil.rmtree(f"{id_path}/{song_folder_name}")
+
+    record = db.get_by_id(key)
+
+    for song in record["songs"]:
+        if song["id"] == id:
+            song["status"] = "ready"
+
+    db.update_by_id(key, record)
+    
+
+@app.get("/status")
+async def status(key: str):
+
+    try:
+        record = db.get_by_id(key)
+    except PysonErrors.IdDoesNotExistError:
+        return JSONResponse({"success": False, "info": "unique resource doesn't exist (db)"}, status_code=404)
+                
+
+    return JSONResponse({"success": True, "data": record["songs"]})
 
 @app.get("/stream")
-def stream(unique_code: str, background_tasks: BackgroundTasks):
+async def stream(key: str, background_tasks: BackgroundTasks):
 
-    unique_folder_path = f"./downloads/{unique_code}"
+    unique_folder_path = f"./downloads/{key}"
     
-    if not os.path.exists(unique_folder_path):
-        return JSONResponse({"success": False, "info": "unique resource doesn't exist"}, status_code=404)
+    try:
+        record = db.get_by_id(key)
+    except PysonErrors.IdDoesNotExistError:
+        return JSONResponse({"success": False, "info": "unique resource doesn't exist (db)"}, status_code=404)
+
+
+    if not record["songs"]:
+        return JSONResponse({"success": False, "info": "no resource to stream (db)"}, status_code=404)
+        
+    f_song_record= record["songs"][0]
+    f_song_folder_name = f_song_record["id"]
+
+    song_name = os.listdir(f"{unique_folder_path}/{f_song_folder_name}")[0]
+    song_path = f"{unique_folder_path}/{f_song_folder_name}/{song_name}"
+
+    file_response = FileResponse(song_path, headers={"X-trackid": f_song_folder_name})
     
-    folders = os.listdir(f"{unique_folder_path}")
+    record["songs"] = [song for song in record["songs"] if song["id"] != f_song_record["id"]]
 
-    if len(folders) == 0:
-        return JSONResponse({"success": False, "info": "no resource to stream"}, status_code=404)
+    if len(record["songs"]) == 0:
+        db.delete_by_id(key)
+    else:
+        db.update_by_id(key, record)
 
-    f_folder_name = folders[0]
-    song_name = os.listdir(f"{unique_folder_path}/{f_folder_name}")[0]
-
-
-    song_path = f"{unique_folder_path}/{f_folder_name}/{song_name}"
-
-    file_response = FileResponse(song_path)
-    
-    background_tasks.add_task(pop_unique_cache, song_path, unique_folder_path, f_folder_name)
+    background_tasks.add_task(pop_unique_cache, song_path, unique_folder_path, f_song_folder_name)
 
     return file_response
 

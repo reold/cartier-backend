@@ -2,3 +2,4 @@ fastapi
 uvicorn
 python-dotenv
 spotify-dl
+pysondb-v2
