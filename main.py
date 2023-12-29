@@ -69,31 +69,38 @@ async def download_track(link: str, background_tasks: BackgroundTasks, key: str 
 
 def task_spotify_dl(key: str, link: str, id: str):
     id_path = f"./downloads/{key}/{id}"
+    failed = False
 
     sys.argv = [sys.argv[0], "-l", link, "-mc", "2", "-o", id_path]
 
-    spotify_dl()
+    try:
+        spotify_dl()
+        
+        song_folder_name = os.listdir(id_path)[0]
+        song_name = os.listdir(f"{id_path}/{song_folder_name}")[0]
+        song_path = f"{id_path}/{song_folder_name}/{song_name}"
 
-    song_folder_name = os.listdir(id_path)[0]
-    song_name = os.listdir(f"{id_path}/{song_folder_name}")[0]
-    song_path = f"{id_path}/{song_folder_name}/{song_name}"
+        print(f"{song_folder_name=} {song_name=} {song_path=}")
 
-    print(f"{song_folder_name=} {song_name=} {song_path=}")
-
-    shutil.move(song_path, f"{id_path}")
-    shutil.rmtree(f"{id_path}/{song_folder_name}")
-
+        shutil.move(song_path, f"{id_path}")
+        shutil.rmtree(f"{id_path}/{song_folder_name}")
+    except:
+        failed = True
+    
     record = db.get_by_id(key)
 
     for song in record["songs"]:
         if song["id"] == id:
-            song["status"] = "ready"
+            if failed:
+                song["status"] = "failed"
+            else:
+                song["status"] = "ready"
 
     db.update_by_id(key, record)
     
 
 @app.get("/status")
-async def status(key: str):
+async def download_status(key: str):
 
     try:
         record = db.get_by_id(key)
