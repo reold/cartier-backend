@@ -5,6 +5,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from spotify_dl.spotify_dl import spotify_dl
 import spotipy
 
+from concurrent.futures import ThreadPoolExecutor
+
 import os, sys, shutil
 from pysondb import PysonDB
 from pysondb import errors as PysonErrors
@@ -17,6 +19,9 @@ app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], all
 spotify_auth = spotipy.SpotifyClientCredentials()
 
 spotify = spotipy.Spotify(auth_manager=spotify_auth)
+
+executor = ThreadPoolExecutor(7, "spotify-dl downloaders")
+app.add_event_handler("shutdown", lambda: executor.shutdown())
 
 @app.get("/favicon.ico")
 async def favicon():
@@ -60,7 +65,8 @@ async def download_track(link: str, background_tasks: BackgroundTasks, key: str 
     db.update_by_id(key, {"songs": [*record["songs"], {"link": link, "id": song_id, "status": "downloading"}]})
 
     try:
-        background_tasks.add_task(task_spotify_dl, key, link, song_id)
+        executor.submit(task_spotify_dl, key, link, song_id)
+        # background_tasks.add_task(task_spotify_dl, key, link, song_id)
     except:
         return JSONResponse({"success": False, "info": "track couldn't be downloaded"}, status_code=404)
 
@@ -86,6 +92,7 @@ def task_spotify_dl(key: str, link: str, id: str):
         shutil.rmtree(f"{id_path}/{song_folder_name}")
     except:
         failed = True
+        shutil.rmtree(f"{id_path}")
     
     record = db.get_by_id(key)
 
@@ -124,7 +131,16 @@ async def stream(key: str, background_tasks: BackgroundTasks):
     if not record["songs"]:
         return JSONResponse({"success": False, "info": "no resource to stream (db)"}, status_code=404)
         
-    f_song_record= record["songs"][0]
+    f_song_record = record["songs"][0]
+
+    if f_song_record["status"] == "failed":
+        
+        record["songs"] = [song for song in record["songs"] if song["id"] != f_song_record["id"]]
+        db.update_by_id(key, record)
+
+        return JSONResponse({"success": False, "info": "conversion failed"}, status_code=404)
+
+
     f_song_folder_name = f_song_record["id"]
 
     song_name = os.listdir(f"{unique_folder_path}/{f_song_folder_name}")[0]
