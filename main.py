@@ -86,7 +86,6 @@ def task_spotify_dl(key: str, link: str, id: str):
         song_name = os.listdir(f"{id_path}/{song_folder_name}")[0]
         song_path = f"{id_path}/{song_folder_name}/{song_name}"
 
-        # print(f"{song_folder_name=} {song_name=} {song_path=}")
 
         shutil.move(song_path, f"{id_path}")
         shutil.rmtree(f"{id_path}/{song_folder_name}")
