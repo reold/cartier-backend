@@ -11,6 +11,7 @@ import os, sys, shutil
 from pysondb import PysonDB
 from pysondb import errors as PysonErrors
 
+
 db = PysonDB("db.json")
 
 app = FastAPI()
@@ -119,6 +120,8 @@ async def download_status(key: str):
 @app.get("/stream")
 async def stream(key: str, background_tasks: BackgroundTasks):
 
+    await background_tasks()
+
     unique_folder_path = f"./downloads/{key}"
     
     try:
@@ -146,7 +149,7 @@ async def stream(key: str, background_tasks: BackgroundTasks):
     song_path = f"{unique_folder_path}/{f_song_folder_name}/{song_name}"
 
     file_response = FileResponse(song_path, headers={"X-trackid": f_song_folder_name})
-    
+
     record["songs"] = [song for song in record["songs"] if song["id"] != f_song_record["id"]]
 
     if len(record["songs"]) == 0:
