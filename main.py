@@ -14,7 +14,7 @@ from pysondb import errors as PysonErrors
 db = PysonDB("db.json")
 
 app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], expose_headers=["x-trackid"])
 
 spotify_auth = spotipy.SpotifyClientCredentials()
 
