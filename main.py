@@ -171,8 +171,8 @@ async def stream(key: str, background_tasks: BackgroundTasks):
 
 
     f_song_folder_name = f_song_record["id"]
-
-    song_name = os.listdir(f"{unique_folder_path}/{f_song_folder_name}")[0]
+    song_files = os.listdir(f"{unique_folder_path}/{f_song_folder_name}")
+    song_name = next((file for file in song_files if file.endswith('.mp3')), None)
     song_path = f"{unique_folder_path}/{f_song_folder_name}/{song_name}"
 
     file_response = FileResponse(song_path, headers={"X-trackid": f_song_folder_name})
