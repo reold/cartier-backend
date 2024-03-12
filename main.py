@@ -22,7 +22,7 @@ spotify_auth = spotipy.SpotifyClientCredentials()
 
 spotify = spotipy.Spotify(auth_manager=spotify_auth)
 
-executor = ThreadPoolExecutor(7, "spotify-dl downloaders")
+executor = ThreadPoolExecutor(2, "deezer downloaders")
 app.add_event_handler("shutdown", lambda: executor.shutdown())
 
 @app.get("/favicon.ico")
