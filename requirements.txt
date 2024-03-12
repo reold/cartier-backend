@@ -3,3 +3,4 @@ uvicorn
 python-dotenv
 spotify-dl
 pysondb-v2
+py-deezer
