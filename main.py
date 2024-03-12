@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from spotify_dl.spotify_dl import spotify_dl
 import spotipy
+from downloader import DeezerDownloader
 
 from concurrent.futures import ThreadPoolExecutor
 
@@ -66,13 +67,39 @@ async def download_track(link: str, background_tasks: BackgroundTasks, key: str 
     db.update_by_id(key, {"songs": [*record["songs"], {"link": link, "id": song_id, "status": "downloading"}]})
 
     try:
-        executor.submit(task_spotify_dl, key, link, song_id)
+        executor.submit(task_deezer_dl, key, link, song_id)
+        # executor.submit(task_spotify_dl, key, link, song_id)
         # background_tasks.add_task(task_spotify_dl, key, link, song_id)
     except:
         return JSONResponse({"success": False, "info": "track couldn't be downloaded"}, status_code=404)
 
 
     return JSONResponse({"success": True, "data": {"key": key}})
+
+
+def task_deezer_dl(key: str, link: str, id: str):
+    id_path = f"./downloads/{key}/{id}"
+    failed = False
+
+    try:
+        isrc = spotify.track(link)["external_ids"]["isrc"]
+        deezer_dl = DeezerDownloader()
+        deezer_dl.download(isrc, id_path)
+    except:
+        failed = True
+        shutil.rmtree(f"{id_path}")
+    
+    record = db.get_by_id(key)
+
+    for song in record["songs"]:
+        if song["id"] == id:
+            if failed:
+                song["status"] = "failed"
+            else:
+                song["status"] = "ready"
+
+    db.update_by_id(key, record)
+    
 
 def task_spotify_dl(key: str, link: str, id: str):
     id_path = f"./downloads/{key}/{id}"
