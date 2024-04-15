@@ -12,6 +12,8 @@ import os, sys, shutil
 from pysondb import PysonDB
 from pysondb import errors as PysonErrors
 
+from dotenv import load_dotenv
+load_dotenv()
 
 db = PysonDB("db.json")
 
@@ -42,7 +44,31 @@ async def user(username: str):
     except spotipy.exceptions.SpotifyException as e:
         return JSONResponse({"success": False, "info": "spotify error", "msg": e.msg}, status_code=404)
 
-    return {"data": {"user": user_info, "playlists": playlist_info}, "success": True}
+    del user_info["href"]
+    del user_info["uri"]
+    del user_info["type"]
+
+    user_info["followers"] = user_info["followers"]["total"]
+    
+    user_info["external_url"] = user_info["external_urls"]["spotify"]
+    del user_info["external_urls"]
+
+    playlist_info = playlist_info["items"]
+
+    for i in range(len(playlist_info)):
+        del playlist_info[i]["collaborative"]
+        del playlist_info[i]["primary_color"]
+        del playlist_info[i]["public"]
+        del playlist_info[i]["snapshot_id"]
+        del playlist_info[i]["type"]
+        del playlist_info[i]["uri"]
+        del playlist_info[i]["tracks"]
+
+        playlist_info[i]["external_urls"] = playlist_info[i]["external_urls"]["spotify"]
+
+    resp = {"data": {"user": user_info, "playlists": {"all": playlist_info}}, "success": True}
+
+    return resp
 
 @app.get("/playlist")
 async def playlist(id: str):
