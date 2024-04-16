@@ -78,6 +78,12 @@ async def playlist(id: str):
     except spotipy.exceptions.SpotifyException as e:
         return JSONResponse({"success": False, "info": "spotify error", "msg": e.msg}, status_code=404)
 
+    playlist_info = playlist_info["tracks"]["items"]
+    for i in range(len(playlist_info)):
+        playlist_info[i] = playlist_info[i]["track"]
+        
+        playlist_info[i] = {"images": playlist_info[i]["album"]["images"], "id": playlist_info[i]["id"], "url": playlist_info[i]["external_urls"]["spotify"], "name": playlist_info[i]["name"]}
+
     return playlist_info
 
 @app.get("/track")
