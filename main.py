@@ -114,7 +114,10 @@ def task_deezer_dl(key: str, link: str, id: str):
     id_path = f"./downloads/{key}/{id}"
     failed = False
 
+    print(f"[TASK DEEZER DL]: stepping into try")
+
     try:
+        print(f"[TASK DEEZER DL]: into try except")
         spotify_track = spotify.track(link)
         print(f"[TASK DEEZER DL]: spotify track retrieved \n{spotify_track}")
         
@@ -130,6 +133,8 @@ def task_deezer_dl(key: str, link: str, id: str):
         failed = True
         shutil.rmtree(f"{id_path}")
     
+    print(f"[TASK DEEZER DL]: finished try block")
+
     record = db.get_by_id(key)
 
     for song in record["songs"]:
