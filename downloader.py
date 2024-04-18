@@ -18,6 +18,8 @@ class DeezerDownloader(Downloader):
     @staticmethod
     def idFromISRC(isrc: str):
         response = requests.get(f"https://api.deezer.com/2.0/track/isrc:{isrc}")
+        print("[DeezerDownloader]: Deezer id obtained from isrc", response)
+
         parsed = response.json()
         return parsed["id"]
 
@@ -26,4 +28,5 @@ class DeezerDownloader(Downloader):
 
         downloader = PydeezerDownloader(self.deezer, [deezer_id], directory,
                                 quality=track_formats.MP3_320, concurrent_downloads=1)
+        print("[DeezerDownloader]: Download started using pydeezer")
         downloader.start()

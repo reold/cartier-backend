@@ -110,12 +110,14 @@ async def download_track(link: str, background_tasks: BackgroundTasks, key: str 
 
 
 def task_deezer_dl(key: str, link: str, id: str):
+    print("[TASK DEEZER DL]: Started successfully")
     id_path = f"./downloads/{key}/{id}"
     failed = False
 
     try:
         isrc = spotify.track(link)["external_ids"]["isrc"]
         deezer_dl = DeezerDownloader()
+        print("[TASK DEEZER DL]: Download started")
         deezer_dl.download(isrc, id_path)
     except:
         failed = True
