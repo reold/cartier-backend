@@ -126,13 +126,14 @@ def task_deezer_dl(key: str, link: str, id: str):
     deezer_dl = DeezerDownloader()
     print("[TASK DEEZER DL]: Download started")
     deezer_dl.download(isrc, id_path)
-    print("[TASK DEEZER DL]: Download failed successfully")
-        
+    print("[TASK DEEZER DL]: Download finished it seems")
+
+    
     # failed = True
     # shutil.rmtree(f"{id_path}")
 
-    print(f"[TASK DEEZER DL]: finished try block")
 
+    print("[TASK DEEZER DL]: geting record from db for status update")
     record = db.get_by_id(key)
 
     for song in record["songs"]:
