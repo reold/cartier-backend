@@ -13,29 +13,18 @@ class Downloader(ABC):
 
 class DeezerDownloader(Downloader):
     def __init__(self):
-        print("[DeezerDownloader]: initilizing deezer using ARL")
         self.deezer = Deezer(ARL)
-        print(f"[DeezerDownloader]: inited deezer, {self.deezer}")
-
 
     @staticmethod
     def idFromISRC(isrc: str):
-        print("[DeezerDownloaderStatic]: trying to get deezer id")
         response = requests.get(f"https://api.deezer.com/2.0/track/isrc:{isrc}")
-        print("[DeezerDownloaderStatic]: Deezer id obtained from isrc", response)
 
         parsed = response.json()
         return parsed["id"]
 
     def download(self, isrc: str, directory: str = "."):
-        print("[DeezerDownloader]: trying to get deezer id")
-
         deezer_id = self.idFromISRC(isrc)
-
-        print(f"[DeezerDownloader]: deezer id retrieved, {deezer_id}")
 
         downloader = PydeezerDownloader(self.deezer, [deezer_id], directory,
                                 quality=track_formats.MP3_320, concurrent_downloads=1)
-        print("[DeezerDownloader]: Download starting using pydeezer")
         downloader.start()
-        print("[DeezerDownloader]: started and probably finished")

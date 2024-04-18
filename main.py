@@ -64,7 +64,9 @@ async def user(username: str):
         del playlist_info[i]["uri"]
         del playlist_info[i]["tracks"]
 
-        playlist_info[i]["external_urls"] = playlist_info[i]["external_urls"]["spotify"]
+        playlist_info[i]["external_url"] = playlist_info[i]["external_urls"]["spotify"]
+
+    print(playlist_info)
 
     resp = {"data": {"user": user_info, "playlists": {"all": playlist_info}}, "success": True}
 
@@ -110,30 +112,20 @@ async def download_track(link: str, background_tasks: BackgroundTasks, key: str 
 
 
 def task_deezer_dl(key: str, link: str, id: str):
-    print("[TASK DEEZER DL]: Started successfully")
     id_path = f"./downloads/{key}/{id}"
     failed = False
 
-    print(f"[TASK DEEZER DL]: stepping into try")
+    try:
+        spotify_track = spotify.track(link)
+        
+        isrc = spotify_track["external_ids"]["isrc"]
 
-    print(f"[TASK DEEZER DL]: into try except")
-    spotify_track = spotify.track(link)
-    print(f"[TASK DEEZER DL]: spotify track retrieved \n{spotify_track}")
-    
-    isrc = spotify_track["external_ids"]["isrc"]
-    print(f"[TASK DEEZER DL]: Downloading isrc {isrc}")
+        deezer_dl = DeezerDownloader()
+        deezer_dl.download(isrc, id_path)
+    except:    
+        failed = True
+        shutil.rmtree(f"{id_path}")
 
-    deezer_dl = DeezerDownloader()
-    print("[TASK DEEZER DL]: Download started")
-    deezer_dl.download(isrc, id_path)
-    print("[TASK DEEZER DL]: Download finished it seems")
-
-    
-    # failed = True
-    # shutil.rmtree(f"{id_path}")
-
-
-    print("[TASK DEEZER DL]: geting record from db for status update")
     record = db.get_by_id(key)
 
     for song in record["songs"]:
