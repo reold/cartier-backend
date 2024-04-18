@@ -13,7 +13,10 @@ class Downloader(ABC):
 
 class DeezerDownloader(Downloader):
     def __init__(self):
+        print("[DeezerDownloader]: initilizing deezer using ARL")
         self.deezer = Deezer(ARL)
+        print(f"[DeezerDownloader]: inited deezer, {self.deezer}")
+
 
     @staticmethod
     def idFromISRC(isrc: str):
