@@ -116,23 +116,21 @@ def task_deezer_dl(key: str, link: str, id: str):
 
     print(f"[TASK DEEZER DL]: stepping into try")
 
-    try:
-        print(f"[TASK DEEZER DL]: into try except")
-        spotify_track = spotify.track(link)
-        print(f"[TASK DEEZER DL]: spotify track retrieved \n{spotify_track}")
-        
-        isrc = spotify_track["external_ids"]["isrc"]
-        print(f"[TASK DEEZER DL]: Downloading isrc {isrc}")
-
-        deezer_dl = DeezerDownloader()
-        print("[TASK DEEZER DL]: Download started")
-        deezer_dl.download(isrc, id_path)
-    except:
-        print("[TASK DEEZER DL]: Download failed successfully")
-        
-        failed = True
-        shutil.rmtree(f"{id_path}")
+    print(f"[TASK DEEZER DL]: into try except")
+    spotify_track = spotify.track(link)
+    print(f"[TASK DEEZER DL]: spotify track retrieved \n{spotify_track}")
     
+    isrc = spotify_track["external_ids"]["isrc"]
+    print(f"[TASK DEEZER DL]: Downloading isrc {isrc}")
+
+    deezer_dl = DeezerDownloader()
+    print("[TASK DEEZER DL]: Download started")
+    deezer_dl.download(isrc, id_path)
+    print("[TASK DEEZER DL]: Download failed successfully")
+        
+    # failed = True
+    # shutil.rmtree(f"{id_path}")
+
     print(f"[TASK DEEZER DL]: finished try block")
 
     record = db.get_by_id(key)
