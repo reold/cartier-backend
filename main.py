@@ -1,5 +1,5 @@
-from fastapi import FastAPI, BackgroundTasks
-from fastapi.responses import JSONResponse, FileResponse
+from fastapi import FastAPI, BackgroundTasks, Request
+from fastapi.responses import JSONResponse, FileResponse, Response
 from fastapi.middleware.cors import CORSMiddleware
 
 from spotify_dl.spotify_dl import spotify_dl
@@ -35,16 +35,16 @@ async def favicon():
 async def root():
     return JSONResponse({"success": True, "info": "Reold's Cartier Manager's Server served on FASTAPI"})
 
-@app.get("/hook/deploy")
-async def hook_deploy(secret: str):
+@app.post("/hook/deploy")
+async def hook_deploy(request: Request):
     
-    subprocess.run(["git", "checkout", "v2"])
+    data = await request.json()
+
+    # perform source code updation
     subprocess.run(["git", "pull", "origin", "v2"])
     subprocess.run(["refresh"])
-    subprocess.run(["git", "checkout", "main"])
-    
 
-    return JSONResponse({"success": True})
+    return Response(status_code=202)
 
 @app.get("/user")
 async def user(username: str):
