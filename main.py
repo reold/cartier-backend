@@ -100,8 +100,6 @@ async def download_track(link: str, background_tasks: BackgroundTasks, key: str 
 
     try:
         executor.submit(task_deezer_dl, key, link, song_id)
-        # executor.submit(task_spotify_dl, key, link, song_id)
-        # background_tasks.add_task(task_spotify_dl, key, link, song_id)
     except:
         return JSONResponse({"success": False, "info": "track couldn't be downloaded"}, status_code=404)
 
