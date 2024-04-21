@@ -25,7 +25,14 @@ spotify_auth = spotipy.SpotifyClientCredentials()
 spotify = spotipy.Spotify(auth_manager=spotify_auth)
 
 executor = ThreadPoolExecutor(2, "deezer downloaders")
-app.add_event_handler("shutdown", lambda: executor.shutdown())
+
+def shutdown_handler():
+    subprocess.run(["rm", "db.json"])
+    subprocess.run(["rm", "-rf", "downloads"])
+
+    executor.shutdown()
+
+app.add_event_handler("shutdown", shutdown_handler)
 
 @app.get("/favicon.ico")
 async def favicon():
@@ -41,7 +48,7 @@ async def hook_deploy(request: Request):
     data = await request.json()
 
     # perform source code updation
-    subprocess.run(["git", "pull","--force", "origin", "v2"])
+    subprocess.run(["git", "pull", "--force", "origin", "v2"])
     subprocess.run(["refresh"])
 
     return Response(status_code=202)
