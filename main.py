@@ -8,7 +8,7 @@ from downloader import DeezerDownloader
 
 from concurrent.futures import ThreadPoolExecutor
 
-import os, sys, shutil
+import os, sys, shutil, subprocess
 from pysondb import PysonDB
 from pysondb import errors as PysonErrors
 
@@ -34,6 +34,17 @@ async def favicon():
 @app.get("/")
 async def root():
     return JSONResponse({"success": True, "info": "Reold's Cartier Manager's Server served on FASTAPI"})
+
+@app.get("/hook/deploy")
+async def hook_deploy(secret: str):
+    
+    subprocess.run(["git", "checkout", "v2"])
+    subprocess.run(["git", "pull", "origin", "v2"])
+    subprocess.run(["refresh"])
+    subprocess.run(["git", "checkout", "main"])
+    
+
+    return JSONResponse({"success": True})
 
 @app.get("/user")
 async def user(username: str):
