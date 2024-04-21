@@ -40,7 +40,7 @@ async def favicon():
 
 @app.get("/")
 async def root():
-    return JSONResponse({"success": True, "info": "Reold's Cartier Manager's Server served on FASTAPI"})
+    return JSONResponse({"success": True, "info": "Reold's Cartier Manager's Server"})
 
 @app.post("/hook/deploy")
 async def hook_deploy(request: Request):
