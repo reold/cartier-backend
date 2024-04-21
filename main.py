@@ -41,7 +41,7 @@ async def hook_deploy(request: Request):
     data = await request.json()
 
     # perform source code updation
-    subprocess.run(["git", "pull", "origin", "v2"])
+    subprocess.run(["git", "pull","--force", "origin", "v2"])
     subprocess.run(["refresh"])
 
     return Response(status_code=202)
