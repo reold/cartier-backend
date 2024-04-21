@@ -66,8 +66,6 @@ async def user(username: str):
 
         playlist_info[i]["external_url"] = playlist_info[i]["external_urls"]["spotify"]
 
-    print(playlist_info)
-
     resp = {"data": {"user": user_info, "playlists": {"all": playlist_info}}, "success": True}
 
     return resp
@@ -117,12 +115,11 @@ def task_deezer_dl(key: str, link: str, id: str):
 
     try:
         spotify_track = spotify.track(link)
-        
         isrc = spotify_track["external_ids"]["isrc"]
 
         deezer_dl = DeezerDownloader()
         deezer_dl.download(isrc, id_path)
-    except:    
+    except:
         failed = True
         shutil.rmtree(f"{id_path}")
 
