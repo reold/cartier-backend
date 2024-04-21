@@ -33,7 +33,7 @@ async def favicon():
 
 @app.get("/")
 async def root():
-    return JSONResponse({"success": True})
+    return JSONResponse({"success": True, "info": "Reold's Cartier Manager's Server served on FASTAPI"})
 
 @app.get("/user")
 async def user(username: str):
