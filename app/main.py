@@ -4,6 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi_socketio import SocketManager
 
 import subprocess
+import signal
 
 from .comms import SocketHandler
 from .connections import executor
@@ -34,3 +35,5 @@ def shutdown_handler():
     executor.shutdown()
 
 app.add_event_handler("shutdown", shutdown_handler)
+signal.signal(signal.SIGINT, shutdown_handler)
+signal.signal(signal.SIGTERM, shutdown_handler)
