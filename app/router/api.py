@@ -1,59 +1,21 @@
-from fastapi import FastAPI, BackgroundTasks, Request
-from fastapi.responses import JSONResponse, FileResponse, Response
-from fastapi.middleware.cors import CORSMiddleware
-
-from spotify_dl.spotify_dl import spotify_dl
 import spotipy
-from downloader import DeezerDownloader
+import os
+import shutil
+import sys
 
-from concurrent.futures import ThreadPoolExecutor
+from fastapi import APIRouter
+from fastapi.background import BackgroundTasks
+from fastapi.responses import JSONResponse, FileResponse
 
-import os, sys, shutil, subprocess
-from pysondb import PysonDB
+from app.downloader import DeezerDownloader
+from spotify_dl.spotify_dl import spotify_dl
+
+from app.connections import db, spotify, executor
 from pysondb import errors as PysonErrors
 
-from dotenv import load_dotenv
-load_dotenv()
+router = APIRouter(prefix="/api")
 
-db = PysonDB("db.json")
-
-app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], expose_headers=["x-trackid"])
-
-spotify_auth = spotipy.SpotifyClientCredentials()
-
-spotify = spotipy.Spotify(auth_manager=spotify_auth)
-
-executor = ThreadPoolExecutor(2, "deezer downloaders")
-
-def shutdown_handler():
-    subprocess.run(["rm", "db.json"])
-    subprocess.run(["rm", "-rf", "downloads"])
-
-    executor.shutdown()
-
-app.add_event_handler("shutdown", shutdown_handler)
-
-@app.get("/favicon.ico")
-async def favicon():
-    return FileResponse("favicon.ico")
-
-@app.get("/")
-async def root():
-    return JSONResponse({"success": True, "info": "Reold's Cartier Manager's Server"})
-
-@app.post("/hook/deploy")
-async def hook_deploy(request: Request):
-    
-    data = await request.json()
-
-    # perform source code updation
-    subprocess.run(["git", "pull", "--force", "origin", "v2"])
-    subprocess.run(["refresh"])
-
-    return Response(status_code=202)
-
-@app.get("/user")
+@router.get("/user")
 async def user(username: str):
 
     try:
@@ -88,7 +50,7 @@ async def user(username: str):
 
     return resp
 
-@app.get("/playlist")
+@router.get("/playlist")
 async def playlist(id: str):
 
     try:
@@ -104,7 +66,7 @@ async def playlist(id: str):
 
     return playlist_info
 
-@app.get("/track")
+@router.get("/track")
 async def download_track(link: str, background_tasks: BackgroundTasks, key: str = "", create: bool = False):
 
     if create:
@@ -114,7 +76,7 @@ async def download_track(link: str, background_tasks: BackgroundTasks, key: str 
 
     record = db.get_by_id(key)
     
-    db.update_by_id(key, {"songs": [*record["songs"], {"link": link, "id": song_id, "status": "downloading"}]})
+    db.update_by_id(key, {"songs": [*record["songs"], {"link": link, "id": song_id, "status": "downloading", "progress": 0}]})
 
     try:
         executor.submit(task_deezer_dl, key, link, song_id)
@@ -183,7 +145,7 @@ def task_spotify_dl(key: str, link: str, id: str):
     db.update_by_id(key, record)
     
 
-@app.get("/status")
+@router.get("/status")
 async def download_status(key: str):
 
     try:
@@ -194,7 +156,7 @@ async def download_status(key: str):
 
     return JSONResponse({"success": True, "data": record["songs"]})
 
-@app.get("/stream")
+@router.get("/stream")
 async def stream(key: str, background_tasks: BackgroundTasks):
 
     await background_tasks()
