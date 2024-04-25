@@ -37,7 +37,7 @@ class ProgressHandler(BaseProgressHandler):
 
             progress = self.size_downloaded / self.total_size * 100
 
-            print(f"{progress}% done")
+            # print(f"{progress}% done")
 
         def close(self, *args, **kwargs):
             pass
