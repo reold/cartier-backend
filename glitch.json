@@ -1,6 +1,6 @@
 {
   "install": "pip3 install --user -r requirements.txt",
-  "start": "uvicorn main:app",
+  "start": "uvicorn app.main:app",
   "watch": {
     "ignore": ["\\.pyc$"],
     "install": {

@@ -1,39 +1,21 @@
-from fastapi import FastAPI, BackgroundTasks
-from fastapi.responses import JSONResponse, FileResponse
-from fastapi.middleware.cors import CORSMiddleware
-
-from spotify_dl.spotify_dl import spotify_dl
 import spotipy
-from downloader import DeezerDownloader
+import os
+import shutil
+import sys
 
-from concurrent.futures import ThreadPoolExecutor
+from fastapi import APIRouter
+from fastapi.background import BackgroundTasks
+from fastapi.responses import JSONResponse, FileResponse
 
-import os, sys, shutil
-from pysondb import PysonDB
+from app.downloader import DeezerDownloader
+from spotify_dl.spotify_dl import spotify_dl
+
+from app.connections import db, spotify, executor
 from pysondb import errors as PysonErrors
 
+router = APIRouter(prefix="/api")
 
-db = PysonDB("db.json")
-
-app = FastAPI()
-app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], expose_headers=["x-trackid"])
-
-spotify_auth = spotipy.SpotifyClientCredentials()
-
-spotify = spotipy.Spotify(auth_manager=spotify_auth)
-
-executor = ThreadPoolExecutor(2, "deezer downloaders")
-app.add_event_handler("shutdown", lambda: executor.shutdown())
-
-@app.get("/favicon.ico")
-async def favicon():
-    return FileResponse("favicon.ico")
-
-@app.get("/")
-async def root():
-    return JSONResponse({"success": True})
-
-@app.get("/user")
+@router.get("/user")
 async def user(username: str):
 
     try:
@@ -42,9 +24,33 @@ async def user(username: str):
     except spotipy.exceptions.SpotifyException as e:
         return JSONResponse({"success": False, "info": "spotify error", "msg": e.msg}, status_code=404)
 
-    return {"data": {"user": user_info, "playlists": playlist_info}, "success": True}
+    del user_info["href"]
+    del user_info["uri"]
+    del user_info["type"]
 
-@app.get("/playlist")
+    user_info["followers"] = user_info["followers"]["total"]
+    
+    user_info["external_url"] = user_info["external_urls"]["spotify"]
+    del user_info["external_urls"]
+
+    playlist_info = playlist_info["items"]
+
+    for i in range(len(playlist_info)):
+        del playlist_info[i]["collaborative"]
+        del playlist_info[i]["primary_color"]
+        del playlist_info[i]["public"]
+        del playlist_info[i]["snapshot_id"]
+        del playlist_info[i]["type"]
+        del playlist_info[i]["uri"]
+        del playlist_info[i]["tracks"]
+
+        playlist_info[i]["external_url"] = playlist_info[i]["external_urls"]["spotify"]
+
+    resp = {"data": {"user": user_info, "playlists": {"all": playlist_info}}, "success": True}
+
+    return resp
+
+@router.get("/playlist")
 async def playlist(id: str):
 
     try:
@@ -52,9 +58,15 @@ async def playlist(id: str):
     except spotipy.exceptions.SpotifyException as e:
         return JSONResponse({"success": False, "info": "spotify error", "msg": e.msg}, status_code=404)
 
+    playlist_info = playlist_info["tracks"]["items"]
+    for i in range(len(playlist_info)):
+        playlist_info[i] = playlist_info[i]["track"]
+        
+        playlist_info[i] = {"images": playlist_info[i]["album"]["images"], "id": playlist_info[i]["id"], "url": playlist_info[i]["external_urls"]["spotify"], "name": playlist_info[i]["name"]}
+
     return playlist_info
 
-@app.get("/track")
+@router.get("/track")
 async def download_track(link: str, background_tasks: BackgroundTasks, key: str = "", create: bool = False):
 
     if create:
@@ -64,12 +76,10 @@ async def download_track(link: str, background_tasks: BackgroundTasks, key: str 
 
     record = db.get_by_id(key)
     
-    db.update_by_id(key, {"songs": [*record["songs"], {"link": link, "id": song_id, "status": "downloading"}]})
+    db.update_by_id(key, {"songs": [*record["songs"], {"link": link, "id": song_id, "status": "downloading", "progress": 0}]})
 
     try:
         executor.submit(task_deezer_dl, key, link, song_id)
-        # executor.submit(task_spotify_dl, key, link, song_id)
-        # background_tasks.add_task(task_spotify_dl, key, link, song_id)
     except:
         return JSONResponse({"success": False, "info": "track couldn't be downloaded"}, status_code=404)
 
@@ -82,13 +92,15 @@ def task_deezer_dl(key: str, link: str, id: str):
     failed = False
 
     try:
-        isrc = spotify.track(link)["external_ids"]["isrc"]
+        spotify_track = spotify.track(link)
+        isrc = spotify_track["external_ids"]["isrc"]
+
         deezer_dl = DeezerDownloader()
         deezer_dl.download(isrc, id_path)
     except:
         failed = True
         shutil.rmtree(f"{id_path}")
-    
+
     record = db.get_by_id(key)
 
     for song in record["songs"]:
@@ -133,7 +145,7 @@ def task_spotify_dl(key: str, link: str, id: str):
     db.update_by_id(key, record)
     
 
-@app.get("/status")
+@router.get("/status")
 async def download_status(key: str):
 
     try:
@@ -144,7 +156,7 @@ async def download_status(key: str):
 
     return JSONResponse({"success": True, "data": record["songs"]})
 
-@app.get("/stream")
+@router.get("/stream")
 async def stream(key: str, background_tasks: BackgroundTasks):
 
     await background_tasks()
