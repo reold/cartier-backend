@@ -16,11 +16,11 @@ from pysondb import errors as PysonErrors
 router = APIRouter(prefix="/api")
 
 @router.get("/user")
-async def user(username: str):
+async def user(userid: str):
 
     try:
-        user_info = spotify.user(username)
-        playlist_info = spotify.user_playlists(username)
+        user_info = spotify.user(userid)
+        playlist_info = spotify.user_playlists(userid)
     except spotipy.exceptions.SpotifyException as e:
         return JSONResponse({"success": False, "info": "spotify error", "msg": e.msg}, status_code=404)
 
