@@ -5,6 +5,7 @@ from fastapi_socketio import SocketManager
 
 import subprocess
 import signal
+import sys
 
 from .comms import SocketHandler
 from .connections import executor
@@ -39,10 +40,17 @@ async def favicon():
 
 
 def reset_handler(*args):
-    subprocess.run(["rm", "db.json"])
-    subprocess.run(["rm", "-rf", "downloads"])
 
-    executor.shutdown()
+    try: 
+        subprocess.run(["rm", "db.json"], check=True)
+        subprocess.run(["rm", "-rf", "downloads"], check=True)
+    except subprocess.CalledProcessError as e:
+        print(f"[SHUTDOWN]: deletion error:  {e}")
+    except Exception as e:
+        print(f"[SHUTDOWN]: unexpected error occured: {e}")
+    finally:
+        executor.shutdown()
+        sys.exit(0)
 
 
 app.add_event_handler("shutdown", reset_handler)
