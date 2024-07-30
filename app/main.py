@@ -1,13 +1,11 @@
-from fastapi import FastAPI, Request
-from fastapi.responses import JSONResponse, FileResponse, Response
+from fastapi import FastAPI
+from fastapi.responses import JSONResponse, FileResponse
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi_socketio import SocketManager
 
 import subprocess
 import signal
 import sys
 
-from .comms import SocketHandler
 from .connections import executor
 from .router import api, hooks
 
@@ -22,11 +20,6 @@ app.add_middleware(
 
 app.include_router(api.router)
 app.include_router(hooks.router)
-
-sio_manager = SocketManager(
-    app=app, mount_location="/socket.io", cors_allowed_origins=[]
-)
-sio_handle = SocketHandler(sio_manager)
 
 
 @app.get("/")
