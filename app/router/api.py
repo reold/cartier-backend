@@ -2,6 +2,7 @@ import spotipy
 import os
 import shutil
 import sys
+import time
 
 from fastapi import APIRouter
 from fastapi.background import BackgroundTasks
@@ -12,6 +13,10 @@ from spotify_dl.spotify_dl import spotify_dl
 
 from app.connections import db, spotify, executor
 from pysondb import errors as PysonErrors
+
+from deta import AsyncBase
+
+cache_db = AsyncBase("cache")
 
 router = APIRouter(prefix="/api")
 
@@ -240,13 +245,29 @@ async def stream(key: str, background_tasks: BackgroundTasks):
         db.update_by_id(key, record)
 
     background_tasks.add_task(
-        pop_unique_cache, song_path, unique_folder_path, f_song_folder_name
+        post_stream_handler, song_path, unique_folder_path, f_song_folder_name
     )
 
     return file_response
 
 
-def pop_unique_cache(song_path, unique_folder_path, folder_name):
+async def post_stream_handler(song_path, unique_folder_path, folder_name):
+
+    cache_record = await cache_db.get(folder_name)
+
+    print(f"{cache_record=}")
+
+    if cache_record == None:
+        new_cache_record = await cache_db.put({ "last_downloaded": str(time.time()), "count": 1}, key=folder_name)
+    else:
+
+        cache_record["last_downloaded"] = str(time.time())
+        cache_record["count"] += 1
+
+        del cache_record["key"]
+
+        await cache_db.update(cache_record, folder_name)
+    
     os.remove(song_path)
 
     if len(os.listdir(f"{unique_folder_path}/{folder_name}")) == 0:
@@ -254,3 +275,9 @@ def pop_unique_cache(song_path, unique_folder_path, folder_name):
 
     if len(os.listdir(unique_folder_path)) == 0:
         shutil.rmtree(unique_folder_path)
+
+
+async def api_shutdown_handler():
+    await cache_db.close()
+
+router.add_event_handler("shutdown", api_shutdown_handler)

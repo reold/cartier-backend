@@ -4,3 +4,4 @@ spotify-dl
 pysondb-v2
 py-deezer
 fastapi-socketio
+deta[async]
