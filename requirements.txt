@@ -1,7 +1,6 @@
 fastapi
 uvicorn
-spotify-dl
+spotipy
 pysondb-v2
 py-deezer
-fastapi-socketio
 deta[async]
