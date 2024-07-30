@@ -9,7 +9,6 @@ from fastapi.background import BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
 
 from app.downloader import DeezerDownloader
-from spotify_dl.spotify_dl import spotify_dl
 
 from app.connections import db, spotify, executor
 from pysondb import errors as PysonErrors
@@ -144,37 +143,6 @@ def task_deezer_dl(key: str, link: str, id: str):
     db.update_by_id(key, record)
 
 
-def task_spotify_dl(key: str, link: str, id: str):
-    id_path = f"./downloads/{key}/{id}"
-    failed = False
-
-    sys.argv = [sys.argv[0], "-l", link, "-mc", "2", "-o", id_path]
-
-    try:
-        spotify_dl()
-
-        song_folder_name = os.listdir(id_path)[0]
-        song_name = os.listdir(f"{id_path}/{song_folder_name}")[0]
-        song_path = f"{id_path}/{song_folder_name}/{song_name}"
-
-        shutil.move(song_path, f"{id_path}")
-        shutil.rmtree(f"{id_path}/{song_folder_name}")
-    except:
-        failed = True
-        shutil.rmtree(f"{id_path}")
-
-    record = db.get_by_id(key)
-
-    for song in record["songs"]:
-        if song["id"] == id:
-            if failed:
-                song["status"] = "failed"
-            else:
-                song["status"] = "ready"
-
-    db.update_by_id(key, record)
-
-
 @router.get("/status")
 async def download_status(key: str):
 
@@ -254,8 +222,6 @@ async def stream(key: str, background_tasks: BackgroundTasks):
 async def post_stream_handler(song_path, unique_folder_path, folder_name):
 
     cache_record = await cache_db.get(folder_name)
-
-    print(f"{cache_record=}")
 
     if cache_record == None:
         new_cache_record = await cache_db.put({ "last_downloaded": str(time.time()), "count": 1}, key=folder_name)
