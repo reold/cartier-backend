@@ -8,4 +8,4 @@ db = PysonDB("db.json")
 spotify_auth = spotipy.SpotifyClientCredentials()
 spotify = spotipy.Spotify(auth_manager=spotify_auth)
 
-executor = ThreadPoolExecutor(2, "deezer downloaders")
+executor = ThreadPoolExecutor(1, "downloaders")
