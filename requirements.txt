@@ -4,3 +4,4 @@ spotipy
 pysondb-v2
 py-deezer
 deta[async]
+pysaavn

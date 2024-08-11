@@ -45,7 +45,6 @@ def reset_handler(*args):
         executor.shutdown()
         sys.exit(0)
 
-
 app.add_event_handler("shutdown", reset_handler)
 signal.signal(signal.SIGINT, reset_handler)
 signal.signal(signal.SIGTERM, reset_handler)

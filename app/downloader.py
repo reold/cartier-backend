@@ -2,7 +2,10 @@ from pydeezer import Deezer, Downloader as PydeezerDownloader
 from pydeezer.constants import track_formats
 from pydeezer.ProgressHandler import BaseProgressHandler
 
+from pysaavn.api import PySaavn
+
 import requests
+import os
 
 from abc import ABC, abstractmethod
 
@@ -63,3 +66,29 @@ class DeezerDownloader(Downloader):
         downloader = PydeezerDownloader(self.deezer, [deezer_id], directory,
                                 quality=track_formats.MP3_320, concurrent_downloads=1, progress_handler=progress_handler)
         downloader.start()
+
+class SaavnDownloader(Downloader):
+    def __init__(self):
+        self.saavn = PySaavn()
+
+    def download(self, name: str, artist: str = "", directory: str="."):
+        resp = self.saavn.query(f"{name} {artist}")
+
+        if len(resp) < 1:
+            return Exception("song not found")
+        
+        song = resp[0]
+
+        url_to_file(song.media_url, f"{directory}/{name}.mp3")
+
+def url_to_file(url: str, path: str):
+    with requests.get(url, stream=True) as resp:
+        resp.raise_for_status()
+
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+
+        with open(path, 'wb') as file:
+            for chunk in resp.iter_content(chunk_size=8192): 
+                file.write(chunk)
+    
+    return path

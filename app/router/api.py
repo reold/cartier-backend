@@ -8,7 +8,7 @@ from fastapi import APIRouter
 from fastapi.background import BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
 
-from app.downloader import DeezerDownloader
+from app.downloader import DeezerDownloader, SaavnDownloader
 
 from app.connections import db, spotify, executor
 from pysondb import errors as PysonErrors
@@ -108,7 +108,7 @@ async def download_track(
     )
 
     try:
-        executor.submit(task_deezer_dl, key, link, song_id)
+        executor.submit(task_saavn_dl, key, link, song_id)
     except:
         return JSONResponse(
             {"success": False, "info": "track couldn't be downloaded"}, status_code=404
@@ -142,6 +142,32 @@ def task_deezer_dl(key: str, link: str, id: str):
 
     db.update_by_id(key, record)
 
+def task_saavn_dl(key: str, link: str, id: str):
+    id_path = f"./downloads/{key}/{id}"
+    failed = False
+
+    try:
+        spotify_track = spotify.track(link)
+
+        saavn_dl = SaavnDownloader()
+        saavn_dl.download(spotify_track["name"], spotify_track["artists"][0]["name"], id_path)
+    
+    except Exception as e:
+
+        print("[SAAVN-DOWNLOADER]: Exception encountered: ", e)
+        failed = True
+        shutil.rmtree(f"{id_path}")
+
+    record = db.get_by_id(key)
+
+    for song in record["songs"]:
+        if song["id"] == id:
+            if failed:
+                song["status"] = "failed"
+            else:
+                song["status"] = "ready"
+
+    db.update_by_id(key, record)
 
 @router.get("/status")
 async def download_status(key: str):
