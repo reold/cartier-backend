@@ -72,7 +72,7 @@ class SaavnDownloader(Downloader):
         self.saavn = PySaavn()
 
     def download(self, name: str, artist: str = "", directory: str="."):
-        resp = self.saavn.query(f"{name} {artist}")
+        resp = self.saavn.query(f"{name} ({artist})")
 
         if len(resp) < 1:
             return Exception("song not found")
