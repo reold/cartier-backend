@@ -71,15 +71,31 @@ class SaavnDownloader(Downloader):
     def __init__(self):
         self.saavn = PySaavn()
 
-    def download(self, name: str, artist: str = "", directory: str="."):
-        resp = self.saavn.query(f"{name} ({artist})")
+    # def query_to_id(q: str):
 
-        if len(resp) < 1:
+
+    def download(self, name: str, artist: str = "", directory: str = "."):
+        resp =  requests.get(f"https://saavn.dev/api/search/songs?query={name} by {artist}")
+        data = resp.json()
+
+        if len(data["data"]["results"]) == 0:
             return Exception("song not found")
         
-        song = resp[0]
+        song = data["data"]["results"][0]
+        url = song["downloadUrl"][-1]["url"]
 
-        url_to_file(song.media_url, f"{directory}/{name}.mp3")
+        url_to_file(url, f"{directory}/{name}.mp3")
+
+
+    # def download(self, name: str, artist: str = "", directory: str="."):
+    #     resp = self.saavn.query(f"{name} by {artist}")
+
+    #     if len(resp) < 1:
+    #         return Exception("song not found")
+        
+    #     song = resp[0]
+
+    #     url_to_file(song.media_url, f"{directory}/{name}.mp3")
 
 def url_to_file(url: str, path: str):
     with requests.get(url, stream=True) as resp:
