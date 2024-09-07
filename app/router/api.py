@@ -1,16 +1,14 @@
 import spotipy
 import os
 import shutil
-import sys
 import time
 
 from fastapi import APIRouter
 from fastapi.background import BackgroundTasks
 from fastapi.responses import JSONResponse, FileResponse
 
-from app.downloader import DeezerDownloader, SaavnDownloader
-
-from app.connections import db, spotify, executor
+from ..downloader import DeezerDownloader, SaavnDownloader
+from ..connections import db, spotify, executor
 from pysondb import errors as PysonErrors
 
 from deta import AsyncBase
@@ -142,6 +140,7 @@ def task_deezer_dl(key: str, link: str, id: str):
 
     db.update_by_id(key, record)
 
+
 def task_saavn_dl(key: str, link: str, id: str):
     id_path = f"./downloads/{key}/{id}"
     failed = False
@@ -150,8 +149,10 @@ def task_saavn_dl(key: str, link: str, id: str):
         spotify_track = spotify.track(link)
 
         saavn_dl = SaavnDownloader()
-        saavn_dl.download(spotify_track["name"], spotify_track["artists"][0]["name"], id_path)
-    
+        saavn_dl.download(
+            spotify_track["name"], spotify_track["artists"][0]["name"], id_path
+        )
+
     except Exception as e:
 
         print("[SAAVN-DOWNLOADER]: Exception encountered: ", e)
@@ -168,6 +169,7 @@ def task_saavn_dl(key: str, link: str, id: str):
                 song["status"] = "ready"
 
     db.update_by_id(key, record)
+
 
 @router.get("/status")
 async def download_status(key: str):
@@ -250,7 +252,9 @@ async def post_stream_handler(song_path, unique_folder_path, folder_name):
     cache_record = await cache_db.get(folder_name)
 
     if cache_record == None:
-        new_cache_record = await cache_db.put({ "last_downloaded": str(time.time()), "count": 1}, key=folder_name)
+        new_cache_record = await cache_db.put(
+            {"last_downloaded": str(time.time()), "count": 1}, key=folder_name
+        )
     else:
 
         cache_record["last_downloaded"] = str(time.time())
@@ -259,7 +263,7 @@ async def post_stream_handler(song_path, unique_folder_path, folder_name):
         del cache_record["key"]
 
         await cache_db.update(cache_record, folder_name)
-    
+
     os.remove(song_path)
 
     if len(os.listdir(f"{unique_folder_path}/{folder_name}")) == 0:
@@ -271,5 +275,6 @@ async def post_stream_handler(song_path, unique_folder_path, folder_name):
 
 async def api_shutdown_handler():
     await cache_db.close()
+
 
 router.add_event_handler("shutdown", api_shutdown_handler)
