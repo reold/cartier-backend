@@ -85,7 +85,7 @@ class SaavnDownloader(Downloader):
 
     def temp_download(self, name: str, artist: str = "", directory: str = "."):
         resp = requests.get(
-            f"https://saavn.dev/api/search/songs?query={name} by {artist}"
+            f"https://jiosaavn-7j995rnfh-thesumitkolhe.vercel.app/api/search/songs?query={name} by {artist}"
         )
         data = resp.json()
 
